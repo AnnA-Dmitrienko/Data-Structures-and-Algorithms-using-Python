@@ -1,0 +1,271 @@
+
+
+# numbers = list(range(1,21))
+# print(numbers) #[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+# #shuffle the numbers - Generate a random permutation of the numbers 1-20
+# shuffled1 = sample(numbers,20)
+# shuffled2 = sample(numbers,20)
+# print(shuffled1)
+# print(shuffled2)
+
+from random import sample
+from typing import List
+import matplotlib.pyplot as plt
+
+
+#--------------BST----------------------------
+class Node:
+    def __init__(self, data: int):
+        self.data = data
+        self.left = None
+        self.right = None
+
+class BinarySearchTree:
+    def __init__(self):
+        self.root = None
+
+    def insert(self, data: int):
+        if not self.root:
+            self.root = Node(data)
+        else:
+            self._insert(data, self.root)
+
+    def _insert(self, data: int, node: Node):
+        if data < node.data:
+            if node.left:
+                self._insert(data, node.left)
+            else:
+                node.left = Node(data)
+        else:
+            if node.right:
+                self._insert(data, node.right)
+            else:
+                node.right = Node(data)
+
+    def height(self, node: Node) -> int:
+        if not node:
+            return 0
+        return max(self.height(node.left), self.height(node.right)) + 1
+
+    def imbalance(self, node: Node) -> int:
+        # imbalance - is the delta between right and left subtrees (or vice versa)
+        return self.height(node.left) - self.height(node.right)
+        # if not node:
+        #     return 0
+        # return (self.height(node.right)-self.height(node.left))
+            
+    
+    def inorder(self, node: Node) -> List[int]:
+        if not node:
+            return []
+        return self.inorder(node.left) + [node.data] + self.inorder(node.right)
+    
+
+#---------------------------------------------------------------------------------
+
+def generate_permutation(n: int) -> List[int]:
+    return sample(range(1, n + 1), n)
+
+def build_bst(data: List[int]) -> BinarySearchTree:
+    bst = BinarySearchTree()
+    for d in data:
+        bst.insert(d)
+    return bst
+
+def plot_histogram(data: List[int], title: str):
+    # Calculate the bin edges for the histogram
+    bin_edges = range(min(data), max(data)+1, 1)
+    #Arguments - Array of numbers to plot, title for the histogram 
+    n, bins, patches = plt.hist(data, bins=bin_edges, color='purple', edgecolor='black', linewidth=0.2)
+    
+    plt.title(title)
+    plt.xlabel('Heights')
+    plt.ylabel('Frequency')
+
+    # Add x-y gridlines
+    plt.grid(True)
+
+    # Add percentage values to the bars
+    total = sum(n)
+    for i in range(len(patches)):
+        x = patches[i].get_x() + patches[i].get_width() / 2
+        y = patches[i].get_height()
+        percentage = (y / total) * 100
+        plt.text(x, y, f'{percentage:.1f}%', ha='center', va='bottom')
+
+    # Add gridlines to x and y axis
+    plt.grid(axis='both', linestyle=':', linewidth=0.5)
+  
+    # Show the plot
+    plt.show()
+    return 
+
+#****************************************************************************************************************************************
+# Part-1 : trying the random shuffling method
+
+# Generate a 1000 random permutations of the numbers 1-20 (total 20! possible random permutations)
+number_of_trees = 1000
+data = [generate_permutation(20) for i in range (number_of_trees)]
+#print(data) #for example 1 permutation: data = [20, 17, 14, 8, 10, 5, 2, 18, 6, 7, 9, 13, 11, 15, 4, 12, 3, 1, 19, 16]
+
+# Build a binary search tree from the permutation
+# bst1 = build_bst(data)        #for 1 tree
+
+#Build 1000 trees
+BSTs = [build_bst(i) for i in data]
+
+#the height of bst1
+# bst1_height = bst1.height(bst1.root)
+# print("Height of BST1:", bst1_height) #8
+
+# Calculate the height of the tree and create a histogram of the height
+
+#heights array 
+# !!!Note-   log2(20) = 4.3 ->the more balanced tree would have a lower height!!!
+heights = [bst.height(bst.root) for bst in BSTs]
+#print(heights) # for example:  for 10 random shuffled trees, the heights array would look tike this-> [7, 7, 7, 8, 8, 10, 7, 9, 7, 7]
+
+
+# Code for calculating the height of each node in the BST and adding it to the list
+plot_histogram(heights, "BST Height Histogram")
+
+# Calculate the imbalance of the two main subtrees for each binary tree created and plot a histogram
+imbalances = [bst.imbalance(bst.root) for bst in BSTs]
+#print(imbalances) # for example:  for 10 random shuffled trees, the imbalances array would look tike this-> [1, 0, 1, 3, 1, 1, 4, 2, 2, 7]
+
+# Code for calculating the imbalance of each node in the BST and adding it to the list
+plot_histogram(imbalances, "BST Imbalance Histogram")
+
+
+#STEP -1  conclusions: 
+# since log2(20) = 4.3, a perfectly balanced BST would have a heigh of 4.3, since its not possible then at most 5
+# the shuffling is generally "good" since it helps converting the trees from a stick (height of 20) to a more balanced trees
+# However - we see that >65% of the trees generated by this method are of height 7-9, and there are even >20% of trees with height >9
+# The imbalance histogram is also not perfect - only around 17% of trees have the balance of -1 0 +1, meaning that >83% of the trees generated by 
+# the shuffling method can be further balanced and improved 
+
+#****************************************************************************************************************************************
+
+#--------------AVL tree----------------------------
+
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.left = None
+        self.right = None
+        self.height = 1
+
+class AVLTree:
+    def __init__(self):
+        self.root = None
+        self.count = 0
+
+    def insert(self, data):
+        self.root = self._insert(self.root, data)
+
+    def _insert(self, node, data):
+        if not node:
+            return Node(data)
+        elif data < node.data:
+            node.left = self._insert(node.left, data)
+        else:
+            node.right = self._insert(node.right, data)
+        node.height = 1 + max(self._height(node.left),
+                              self._height(node.right))
+        balance = self._get_balance(node)
+        if balance > 1 and data < node.left.data:
+            return self._rotate_right(node)
+        if balance < -1 and data > node.right.data:
+            return self._rotate_left(node)
+        if balance > 1 and data > node.left.data:
+            node.left = self._rotate_left(node.left)
+            return self._rotate_right(node)
+        if balance < -1 and data < node.right.data:
+            node.right = self._rotate_right(node.right)
+            return self._rotate_left(node)
+        return node
+
+    def _get_balance(self, node):
+        if not node:
+            return 0
+        return self._height(node.left) - self._height(node.right)
+
+    def _height(self, node):
+        if not node:
+            return 0
+        return node.height
+
+    def _rotate_right(self, node):
+        new_root = node.left
+        node.left = new_root.right
+        new_root.right = node
+        node.height = 1 + max(self._height(node.left), self._height(node.right))
+        new_root.height = 1 + max(self._height(new_root.left), self._height(new_root.right))
+        #count the number of transformations needed 
+        self.count +=1
+        return new_root
+
+    def _rotate_left(self, node):
+        new_root = node.right
+        node.right = new_root.left
+        new_root.left = node
+        node.height = 1 + max(self._height(node.left), self._height(node.right))
+        new_root.height = 1 + max(self._height(new_root.left), self._height(new_root.right))
+         #count the number of transformations needed 
+        self.count +=1
+        return new_root
+    
+    
+    def get_num_transformations(self):
+        return self.count
+    
+
+
+#****************************************************************************************************************************************
+
+# Part-2: trying the AVL method
+
+# convert the the most imbalanced trees to AVL trees 
+# record the number of transformations needed for each tree
+# record new height & balance parameters 
+
+imbalanced_data1= [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]  # Most imbalanced tree 1 -ascending stick
+imbalanced_data2= [20,19,18,17,16,15,14,13,12,11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]  # Most imbalanced tree 2 -descending stick
+
+# using BST - 
+imbalanced_bst1 = build_bst(imbalanced_data1)
+height_imbalanced1 = imbalanced_bst1.height(imbalanced_bst1.root)
+print(f'The height of the most imbalanced tree #1 (ASCENDING values) is: {height_imbalanced1}') #ANSWER = 20
+imbalance_value_tree1 = imbalanced_bst1.imbalance(imbalanced_bst1.root)
+print(f'The the imbalance value of tree #1 is: {imbalance_value_tree1}') #ANSWER = 19
+
+
+imbalanced_bst2 = build_bst(imbalanced_data2)
+height_imbalanced2 = imbalanced_bst2.height(imbalanced_bst2.root)
+print(f'The height of the most imbalanced tree #2 (DESCENDING values) is: {height_imbalanced2}') #ANSWER = 20
+imbalance_value_tree2 = imbalanced_bst2.imbalance(imbalanced_bst2.root)
+print(f'The the imbalance value of tree #2 is: {imbalance_value_tree2}') #ANSWER = 19
+
+
+# using AVL -convert the imbalanced tress 
+
+#tree #1
+avl_tree1 = AVLTree()
+for data in imbalanced_data1:
+    avl_tree1.insert(data)
+print(f'The height of the most imbalanced tree #1 (ASCENDING values) using AVL is: {avl_tree1._height(avl_tree1.root)}') #ANSWER = 5
+print(f'The imbalance of the most imbalanced tree #1 (ASCENDING values) using AVL is: {avl_tree1._get_balance(avl_tree1.root)}') #ANSWER = -1
+print(f'The number of transformations of the most imbalanced tree #1 (ASCENDING values) using AVL is: {avl_tree1.get_num_transformations()}') #ANSWER = 15
+
+
+#tree #2
+avl_tree2 = AVLTree()
+for data in imbalanced_data2:
+    avl_tree2.insert(data)
+print(f'The height of the most imbalanced tree #2 (DESCENDING values) using AVL is: {avl_tree2._height(avl_tree2.root)}') #ANSWER = 5
+print(f'The imbalance of the most imbalanced tree #2 (DESCENDING values) using AVL is: {avl_tree2._get_balance(avl_tree2.root)}') #ANSWER = +1
+print(f'The number of transformations of the most imbalanced tree #2 (DESCENDING values) using AVL is: {avl_tree2.get_num_transformations()}') #ANSWER = 15
+
+#STEP -2 conclusions: 
+# we can see that using AVL method we significantly improve our BSTs, even if it requires O(n) transformations, the benefit is that we get almost perfectly 
+# balance tree (height=5 for a tree with 20 numbers, which is as close at it can be to log2(20)=4.3 and the imbalance parameter is 100% within the range of -1,0,1 )
